@@ -114,7 +114,7 @@ class PeerSession : public std::enable_shared_from_this<PeerSession> {
             asio::async_read(
                 _socket,
                 asio::buffer(_read_buffer),
-                [this, self](const boost::system::error_code& ec, std::size_t length) {
+                [this, self](const boost::system::error_code& ec, std::size_t /*length*/) {
                   if (!ec) {
                     try {
                       auto message = MessageFactory::CreateFromBuffer(_read_buffer);
@@ -236,7 +236,7 @@ class AsioNetworkManager : public NetworkManager {
       asio::async_connect(
           *socket, endpoints,
           [this, address, port, socket](
-              const boost::system::error_code& ec, const asio::ip::tcp::endpoint& endpoint) {
+              const boost::system::error_code& ec, const asio::ip::tcp::endpoint& /*endpoint*/) {
             if (!ec) {
               LOG_INFO("Connected to peer at ", address, ":", port);
               

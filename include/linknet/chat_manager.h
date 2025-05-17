@@ -7,6 +7,8 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <mutex>
+#include <ctime>
 
 namespace linknet {
 

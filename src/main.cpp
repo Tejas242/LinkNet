@@ -137,7 +137,9 @@ int main(int argc, char* argv[]) {
     });
     
     // Set up file transfer manager
-    auto file_transfer_manager = linknet::FileTransferFactory::Create(network_manager);
+    // Convert unique_ptr to shared_ptr since our ConsoleUI requires shared_ptr
+    std::shared_ptr<linknet::FileTransferManager> file_transfer_manager = 
+        std::shared_ptr<linknet::FileTransferManager>(linknet::FileTransferFactory::Create(network_manager).release());
     
     // Handle file transfer progress
     file_transfer_manager->SetProgressCallback([](const linknet::PeerId& peer_id, 
