@@ -13,15 +13,25 @@ namespace crypto {
 constexpr size_t KEY_SIZE = 32;
 constexpr size_t NONCE_SIZE = 24;
 constexpr size_t MAC_SIZE = 16;
+constexpr size_t SIGN_PUBLICKEY_SIZE = 32;
+constexpr size_t SIGN_SECRETKEY_SIZE = 64;  // Ed25519 secret key is 64 bytes in libsodium
 
 // Key types
 using Key = std::array<uint8_t, KEY_SIZE>;
 using Nonce = std::array<uint8_t, NONCE_SIZE>;
+using SignPublicKey = std::array<uint8_t, SIGN_PUBLICKEY_SIZE>;
+using SignPrivateKey = std::array<uint8_t, SIGN_SECRETKEY_SIZE>;
 
 // Key pair for asymmetric encryption
 struct KeyPair {
   Key public_key;
   Key private_key;
+};
+
+// Key pair specifically for digital signatures
+struct SignatureKeyPair {
+  SignPublicKey public_key;
+  SignPrivateKey private_key;
 };
 
 // Interface for cryptographic operations
@@ -34,6 +44,9 @@ class CryptoProvider {
   
   // Generate a keypair for asymmetric encryption
   virtual KeyPair GenerateKeyPair() const = 0;
+  
+  // Generate a keypair specifically for digital signatures
+  virtual SignatureKeyPair GenerateSignatureKeyPair() const = 0;
   
   // Generate a random nonce
   virtual Nonce GenerateNonce() const = 0;
@@ -61,11 +74,11 @@ class CryptoProvider {
   
   // Digital signatures
   virtual ByteBuffer Sign(const ByteBuffer& message, 
-                        const Key& private_key) const = 0;
+                        const SignPrivateKey& private_key) const = 0;
   
   virtual bool Verify(const ByteBuffer& message, 
                      const ByteBuffer& signature,
-                     const Key& public_key) const = 0;
+                     const SignPublicKey& public_key) const = 0;
 };
 
 // Factory to create a concrete implementation

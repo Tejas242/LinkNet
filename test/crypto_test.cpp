@@ -79,8 +79,8 @@ TEST_F(CryptoTest, DigitalSignature) {
   std::string message = "This is a message to be signed";
   ByteBuffer message_buffer(message.begin(), message.end());
   
-  // Generate a key pair
-  crypto::KeyPair keys = crypto_provider->GenerateKeyPair();
+  // Generate a signature key pair - must use signature keys, not encryption keys
+  crypto::SignatureKeyPair keys = crypto_provider->GenerateSignatureKeyPair();
   
   // Sign the message
   ByteBuffer signature = crypto_provider->Sign(message_buffer, keys.private_key);

@@ -34,6 +34,15 @@ class SodiumCryptoProvider : public CryptoProvider {
     return key_pair;
   }
   
+  SignatureKeyPair GenerateSignatureKeyPair() const override {
+    SignatureKeyPair key_pair;
+    if (crypto_sign_keypair(key_pair.public_key.data(), key_pair.private_key.data()) != 0) {
+      LOG_ERROR("Failed to generate signature keypair");
+      throw std::runtime_error("Failed to generate signature keypair");
+    }
+    return key_pair;
+  }
+  
   Nonce GenerateNonce() const override {
     Nonce nonce;
     randombytes_buf(nonce.data(), nonce.size());
@@ -150,7 +159,8 @@ class SodiumCryptoProvider : public CryptoProvider {
   }
   
   ByteBuffer Sign(const ByteBuffer& message, 
-                 const Key& private_key) const override {
+                 const SignPrivateKey& private_key) const override {
+    // This requires a signing private key from GenerateSignatureKeyPair()
     ByteBuffer signature(crypto_sign_BYTES);
     
     if (crypto_sign_detached(signature.data(), 
@@ -167,7 +177,8 @@ class SodiumCryptoProvider : public CryptoProvider {
   
   bool Verify(const ByteBuffer& message, 
               const ByteBuffer& signature,
-              const Key& public_key) const override {
+              const SignPublicKey& public_key) const override {
+    // This requires a signing public key from GenerateSignatureKeyPair()
     if (signature.size() != crypto_sign_BYTES) {
       LOG_ERROR("Invalid signature size");
       return false;
