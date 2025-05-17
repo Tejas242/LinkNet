@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        build_type: [Release, Debug]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libboost-all-dev libsodium-dev libssl-dev protobuf-compiler libprotobuf-dev libgtest-dev pkg-config
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} --parallel $(nproc)
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{matrix.build_type}} --output-on-failure
+
+  code-analysis:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install clang-tidy
+      run: sudo apt-get update && sudo apt-get install -y clang-tidy
+    
+    - name: Install dependencies
+      run: sudo apt-get install -y build-essential cmake libboost-all-dev libsodium-dev libssl-dev protobuf-compiler libprotobuf-dev libgtest-dev pkg-config
+    
+    - name: Generate compilation database
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    
+    - name: Run clang-tidy
+      run: |
+        find ${{github.workspace}}/src -name '*.cpp' -o -name '*.h' | xargs clang-tidy -p ${{github.workspace}}/build
+
+  sanitizers:
+    name: Sanitizer Check
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y build-essential cmake libboost-all-dev libsodium-dev libssl-dev protobuf-compiler libprotobuf-dev libgtest-dev pkg-config
+      
+    - name: Configure CMake with sanitizers
+      run: |
+        cmake -B ${{github.workspace}}/build-asan \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address -fno-omit-frame-pointer"
+    
+    - name: Build with sanitizers
+      run: cmake --build ${{github.workspace}}/build-asan --parallel $(nproc)
+      
+    - name: Run tests with sanitizers
+      working-directory: ${{github.workspace}}/build-asan
+      run: ctest --output-on-failure
