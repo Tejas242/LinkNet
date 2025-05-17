@@ -25,6 +25,7 @@ enum class MessageType : uint8_t {
   PEER_DISCOVERY = 5,
   PING = 6,
   PONG = 7,
+  CONNECTION_NOTIFICATION = 8,
 };
 
 // Connection status

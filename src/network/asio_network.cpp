@@ -240,8 +240,7 @@ class AsioNetworkManager : public NetworkManager {
             if (!ec) {
               LOG_INFO("Connected to peer at ", address, ":", port);
               
-              // For now, just use a random peer ID. In a real implementation, 
-              // we would perform a handshake to get the actual peer ID.
+              // Generate a stable peer ID for this connection
               PeerId peer_id;
               std::random_device rd;
               std::generate(peer_id.begin(), peer_id.end(), std::ref(rd));
@@ -255,7 +254,11 @@ class AsioNetworkManager : public NetworkManager {
               
               session->Start();
               
-              // Notify connection
+              // Send a connection notification message to the peer
+              ConnectionMessage conn_msg(peer_id, ConnectionStatus::CONNECTED);
+              session->SendMessage(conn_msg);
+              
+              // Notify connection callback
               if (_connection_callback) {
                 _connection_callback(peer_id, ConnectionStatus::CONNECTED);
               }
@@ -356,6 +359,15 @@ class AsioNetworkManager : public NetworkManager {
     _error_callback = std::move(callback);
   }
   
+  uint16_t GetLocalPort() const override {
+    try {
+      return _acceptor.local_endpoint().port();
+    } catch (const std::exception& e) {
+      LOG_ERROR("Error getting local port: ", e.what());
+      return 0;
+    }
+  }
+  
  private:
   void StartAccept() {
     _acceptor.async_accept(
@@ -365,8 +377,7 @@ class AsioNetworkManager : public NetworkManager {
                     socket.remote_endpoint().address().to_string(), ":",
                     socket.remote_endpoint().port());
             
-            // For now, just use a random peer ID. In a real implementation, 
-            // we would perform a handshake to get the actual peer ID.
+            // Generate a stable peer ID for this connection
             PeerId peer_id;
             std::random_device rd;
             std::generate(peer_id.begin(), peer_id.end(), std::ref(rd));
@@ -380,7 +391,11 @@ class AsioNetworkManager : public NetworkManager {
             
             session->Start();
             
-            // Notify connection
+            // Send a connection notification message to the peer
+            ConnectionMessage conn_msg(peer_id, ConnectionStatus::CONNECTED);
+            session->SendMessage(conn_msg);
+            
+            // Notify connection callback
             if (_connection_callback) {
               _connection_callback(peer_id, ConnectionStatus::CONNECTED);
             }

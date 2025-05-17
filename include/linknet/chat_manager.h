@@ -52,10 +52,16 @@ class ChatManager {
   
   // Set callback for incoming chat messages
   void SetMessageCallback(ChatMessageCallback callback);
-
- private:
+  
   // Handle incoming messages
   void HandleMessage(std::unique_ptr<Message> message);
+  
+  // Set the next handler in the chain for non-chat messages
+  void SetNextHandler(std::function<void(std::unique_ptr<Message>)> handler);
+
+ private:
+  // Next handler in the chain for messages we don't handle
+  std::function<void(std::unique_ptr<Message>)> _next_handler;
   
   std::shared_ptr<NetworkManager> _network_manager;
   PeerId _local_user_id;

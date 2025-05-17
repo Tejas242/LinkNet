@@ -237,8 +237,10 @@ void PeerDiscovery::ListenThreadFunc() {
           try {
             uint16_t port = std::stoi(port_str);
             
-            // Skip self
-            if (sender_ip == "127.0.0.1" && port == _port) {
+            // Skip self - check both localhost and port equality
+            if (port == _port || (sender_ip == "127.0.0.1" && port == _port)) {
+              // Same port means it's likely the same instance on this machine
+              LOG_DEBUG("Skipping own discovery message from ", sender_ip, ":", port);
               continue;
             }
             

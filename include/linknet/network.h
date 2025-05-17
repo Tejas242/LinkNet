@@ -44,6 +44,9 @@ class NetworkManager {
   // Get connected peers
   virtual std::vector<PeerInfo> GetConnectedPeers() const = 0;
   
+  // Get local listening port
+  virtual uint16_t GetLocalPort() const = 0;
+  
   // Set callbacks
   virtual void SetMessageCallback(MessageCallback callback) = 0;
   virtual void SetConnectionCallback(ConnectionCallback callback) = 0;

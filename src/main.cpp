@@ -31,6 +31,7 @@ void SetupSignalHandlers() {
 int main(int argc, char* argv[]) {
   // Parse command line arguments
   uint16_t port = 8080;  // Default port
+  bool auto_connect = true;  // Default to auto-connect
   
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
@@ -42,12 +43,21 @@ int main(int argc, char* argv[]) {
         std::cerr << "Invalid port number: " << port_str << std::endl;
         return 1;
       }
+    } else if (arg.find("--auto-connect=") == 0) {
+      std::string auto_connect_str = arg.substr(14);
+      if (auto_connect_str == "false" || auto_connect_str == "0") {
+        auto_connect = false;
+      }
+    } else if (arg == "--no-auto-connect") {
+      auto_connect = false;
     } else if (arg == "--help" || arg == "-h") {
       std::cout << "LinkNet - P2P Chat and File Sharing System" << std::endl;
-      std::cout << "Usage: " << argv[0] << " [--port=PORT]" << std::endl;
+      std::cout << "Usage: " << argv[0] << " [OPTIONS]" << std::endl;
       std::cout << "Options:" << std::endl;
-      std::cout << "  --port=PORT    Port to listen on (default: 8080)" << std::endl;
-      std::cout << "  --help, -h     Show this help message" << std::endl;
+      std::cout << "  --port=PORT                Port to listen on (default: 8080)" << std::endl;
+      std::cout << "  --auto-connect=true|false  Auto-connect to discovered peers (default: true)" << std::endl;
+      std::cout << "  --no-auto-connect          Disable auto-connect to discovered peers" << std::endl;
+      std::cout << "  --help, -h                 Show this help message" << std::endl;
       return 0;
     }
   }
@@ -78,27 +88,58 @@ int main(int argc, char* argv[]) {
     // Set up peer discovery
     auto peer_discovery = std::make_shared<linknet::PeerDiscovery>(network_manager);
     
-    // Handle incoming messages
-    network_manager->SetMessageCallback([](std::unique_ptr<linknet::Message> message) {
-      switch (message->GetType()) {
-        case linknet::MessageType::CHAT_MESSAGE: {
-          auto chat_msg = static_cast<linknet::ChatMessage&>(*message);
+    // Set up chat message callback
+    chat_manager->SetMessageCallback([](const linknet::ChatInfo& chat_info) {
+      std::stringstream peer_id_ss;
+      for (const auto& byte : chat_info.sender_id) {
+        peer_id_ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+      }
+      
+      LOG_INFO("Chat message from ", peer_id_ss.str(), ": ", chat_info.content);
+      
+      if (g_ui) {
+        g_ui->DisplayColoredMessage("Message from peer: " + chat_info.content, linknet::TextColor::CYAN);
+      }
+    });
+    
+    // Set up message handling chain
+    // First, create a handler for non-chat messages
+    auto non_chat_handler = [network_manager](std::unique_ptr<linknet::Message> message) {
+      switch (message->GetType()) {        
+        case linknet::MessageType::CONNECTION_NOTIFICATION: {
+          auto conn_msg = static_cast<linknet::ConnectionMessage&>(*message);
+          const linknet::PeerId& sender_id = conn_msg.GetSender();
+          
           std::stringstream peer_id_ss;
-          for (const auto& byte : chat_msg.GetSender()) {
+          for (const auto& byte : sender_id) {
             peer_id_ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
           }
           
-          LOG_INFO("Chat message from ", peer_id_ss.str(), ": ", chat_msg.GetContent());
+          LOG_INFO("Connection notification from ", peer_id_ss.str(), 
+                   ", status: ", static_cast<int>(conn_msg.GetStatus()));
           
           if (g_ui) {
-            g_ui->DisplayMessage("Message from peer: " + chat_msg.GetContent());
+            if (conn_msg.GetStatus() == linknet::ConnectionStatus::CONNECTED) {
+              g_ui->DisplayColoredMessage("Peer connected: " + peer_id_ss.str(), linknet::TextColor::GREEN);
+            } else {
+              g_ui->DisplayColoredMessage("Peer disconnected: " + peer_id_ss.str(), linknet::TextColor::RED);
+            }
           }
           break;
         }
         
         default:
+          LOG_DEBUG("Received unhandled message type: ", static_cast<int>(message->GetType()));
           break;
       }
+    };
+    
+    // Set the chat manager's next handler
+    chat_manager->SetNextHandler(non_chat_handler);
+    
+    // Set the network manager's message callback to send everything to the chat manager
+    network_manager->SetMessageCallback([chat_manager](std::unique_ptr<linknet::Message> message) {
+      chat_manager->HandleMessage(std::move(message));
     });
     
     // Handle connection status changes
@@ -112,14 +153,14 @@ int main(int argc, char* argv[]) {
         case linknet::ConnectionStatus::CONNECTED:
           LOG_INFO("Peer connected: ", peer_id_ss.str());
           if (g_ui) {
-            g_ui->DisplayMessage("Peer connected: " + peer_id_ss.str());
+            g_ui->DisplayColoredMessage("Peer connected: " + peer_id_ss.str(), linknet::TextColor::GREEN);
           }
           break;
           
         case linknet::ConnectionStatus::DISCONNECTED:
           LOG_INFO("Peer disconnected: ", peer_id_ss.str());
           if (g_ui) {
-            g_ui->DisplayMessage("Peer disconnected: " + peer_id_ss.str());
+            g_ui->DisplayColoredMessage("Peer disconnected: " + peer_id_ss.str(), linknet::TextColor::RED);
           }
           break;
           
@@ -132,7 +173,7 @@ int main(int argc, char* argv[]) {
     network_manager->SetErrorCallback([](const std::string& error) {
       LOG_ERROR("Network error: ", error);
       if (g_ui) {
-        g_ui->DisplayMessage("Network error: " + error);
+        g_ui->DisplayColoredMessage("Network error: " + error, linknet::TextColor::RED);
       }
     });
     
@@ -174,12 +215,12 @@ int main(int argc, char* argv[]) {
       if (success) {
         LOG_INFO("File transfer completed for ", file_path);
         if (g_ui) {
-          g_ui->DisplayMessage("File transfer completed for " + file_path);
+          g_ui->DisplayColoredMessage("File transfer completed for " + file_path, linknet::TextColor::GREEN);
         }
       } else {
         LOG_ERROR("File transfer failed for ", file_path, ": ", error);
         if (g_ui) {
-          g_ui->DisplayMessage("File transfer failed for " + file_path + ": " + error);
+          g_ui->DisplayColoredMessage("File transfer failed for " + file_path + ": " + error, linknet::TextColor::RED);
         }
       }
     });
@@ -208,16 +249,16 @@ int main(int argc, char* argv[]) {
                ": ", filename, " (", size_ss.str(), ")");
       
       if (g_ui) {
-        g_ui->DisplayMessage("File transfer request from " + peer_id_ss.str() + 
-                           ": " + filename + " (" + size_ss.str() + ")");
-        g_ui->DisplayMessage("Automatically accepting file transfer");
+        g_ui->DisplayColoredMessage("File transfer request from " + peer_id_ss.str() + 
+                           ": " + filename + " (" + size_ss.str() + ")", linknet::TextColor::MAGENTA);
+        g_ui->DisplayColoredMessage("Automatically accepting file transfer", linknet::TextColor::YELLOW);
       }
       
       return true;  // Always accept for now
     });
     
     // Set up console UI
-    g_ui = std::make_shared<linknet::ConsoleUI>(network_manager, file_transfer_manager);
+    g_ui = std::make_shared<linknet::ConsoleUI>(network_manager, file_transfer_manager, chat_manager);
     
     // Set up signal handlers
     SetupSignalHandlers();
@@ -230,12 +271,23 @@ int main(int argc, char* argv[]) {
       peer_discovery->SetDiscoveredCallback([&](const std::string& ip, uint16_t peer_port) {
         LOG_INFO("Discovered peer at ", ip, ":", peer_port);
         if (g_ui) {
-          g_ui->DisplayMessage("Discovered peer at " + ip + ":" + std::to_string(peer_port));
-          g_ui->DisplayMessage("Automatically connecting to peer...");
+          g_ui->DisplayColoredMessage("Discovered peer at " + ip + ":" + std::to_string(peer_port), linknet::TextColor::CYAN);
+          
+          // Only auto-connect if the option is enabled
+          if (auto_connect) {
+            g_ui->DisplayColoredMessage("Automatically connecting to peer...", linknet::TextColor::YELLOW);
+            // Attempt to connect to the peer
+            network_manager->ConnectToPeer(ip, peer_port);
+          } else {
+            g_ui->DisplayColoredMessage("Auto-connect disabled. Use /connect " + ip + ":" + 
+                                      std::to_string(peer_port) + " to connect manually", linknet::TextColor::GRAY);
+          }
         }
         
-        // Attempt to connect to the peer
-        network_manager->ConnectToPeer(ip, peer_port);
+        // Only attempt connection if auto-connect is enabled
+        if (auto_connect) {
+          network_manager->ConnectToPeer(ip, peer_port);
+        }
       });
     }
     

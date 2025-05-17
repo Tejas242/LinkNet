@@ -18,12 +18,6 @@ ChatManager::ChatManager(std::shared_ptr<NetworkManager> network_manager)
   // Set default user name
   _local_user_name = "User-" + std::to_string(std::chrono::system_clock::now()
       .time_since_epoch().count() % 10000);
-  
-  // Register for network messages
-  _network_manager->SetMessageCallback(
-      [this](std::unique_ptr<Message> message) {
-        HandleMessage(std::move(message));
-      });
 }
 
 ChatManager::~ChatManager() = default;
@@ -134,8 +128,16 @@ void ChatManager::SetMessageCallback(ChatMessageCallback callback) {
   _message_callback = std::move(callback);
 }
 
+void ChatManager::SetNextHandler(std::function<void(std::unique_ptr<Message>)> handler) {
+  _next_handler = std::move(handler);
+}
+
 void ChatManager::HandleMessage(std::unique_ptr<Message> message) {
   if (message->GetType() != MessageType::CHAT_MESSAGE) {
+    // If we have a next handler, delegate to it
+    if (_next_handler) {
+      _next_handler(std::move(message));
+    }
     return;
   }
   

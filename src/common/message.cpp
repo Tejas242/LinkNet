@@ -245,12 +245,78 @@ std::unique_ptr<Message> MessageFactory::CreateFromBuffer(const ByteBuffer& data
       break;
     }
     
+    case MessageType::CONNECTION_NOTIFICATION: {
+      auto conn_msg = std::make_unique<ConnectionMessage>(sender);
+      if (conn_msg->Deserialize(data)) {
+        message = std::move(conn_msg);
+      }
+      break;
+    }
+    
     default:
       LOG_ERROR("MessageFactory: Unsupported message type: ", static_cast<int>(type));
       break;
   }
   
   return message;
+}
+
+ConnectionMessage::ConnectionMessage(const PeerId& sender, ConnectionStatus status)
+    : Message(MessageType::CONNECTION_NOTIFICATION, sender), _status(status) {}
+
+ConnectionMessage::ConnectionMessage(const PeerId& sender)
+    : Message(MessageType::CONNECTION_NOTIFICATION, sender), _status(ConnectionStatus::DISCONNECTED) {}
+
+ByteBuffer ConnectionMessage::Serialize() const {
+  // Header format:
+  // - 1 byte: MessageType
+  // - 32 bytes: PeerId
+  // - 16 bytes: MessageId
+  // - 8 bytes: Timestamp
+  // - 1 byte: Connection status
+  constexpr size_t BUFFER_SIZE = 1 + 32 + 16 + 8 + 1;
+  
+  ByteBuffer buffer(BUFFER_SIZE);
+  
+  // Fill the header
+  buffer[0] = static_cast<uint8_t>(_type);
+  
+  // Copy PeerId
+  std::copy(_sender.begin(), _sender.end(), buffer.begin() + 1);
+  
+  // Copy MessageId
+  std::copy(_id.begin(), _id.end(), buffer.begin() + 33);
+  
+  // Copy timestamp
+  uint64_t timestamp_network = htobe64(static_cast<uint64_t>(_timestamp));
+  std::memcpy(buffer.data() + 49, &timestamp_network, 8);
+  
+  // Copy connection status
+  buffer[57] = static_cast<uint8_t>(_status);
+  
+  return buffer;
+}
+
+bool ConnectionMessage::Deserialize(const ByteBuffer& data) {
+  // Validate data size
+  constexpr size_t MIN_SIZE = 1 + 32 + 16 + 8 + 1;
+  if (data.size() < MIN_SIZE) {
+    LOG_ERROR("ConnectionMessage::Deserialize: Buffer too small");
+    return false;
+  }
+  
+  // Extract timestamp
+  uint64_t timestamp_network;
+  std::memcpy(&timestamp_network, data.data() + 49, 8);
+  _timestamp = static_cast<std::time_t>(be64toh(timestamp_network));
+  
+  // Extract message ID
+  std::copy(data.begin() + 33, data.begin() + 49, _id.begin());
+  
+  // Extract connection status
+  _status = static_cast<ConnectionStatus>(data[57]);
+  
+  return true;
 }
 
 }  // namespace linknet

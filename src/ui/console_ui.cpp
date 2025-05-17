@@ -3,6 +3,7 @@
 #include "linknet/file_transfer.h"
 #include "linknet/message.h"
 #include "linknet/logger.h"
+#include "linknet/chat_manager.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -15,16 +16,18 @@
 namespace linknet {
 
 ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
-                   std::shared_ptr<FileTransferManager> file_transfer_manager)
+                   std::shared_ptr<FileTransferManager> file_transfer_manager,
+                   std::shared_ptr<ChatManager> chat_manager)
     : _network_manager(network_manager),
       _file_transfer_manager(file_transfer_manager),
+      _chat_manager(chat_manager),
       _running(false) {
   
   // Register built-in commands
   RegisterCommand("connect", 
       [this](const std::vector<std::string>& args) {
         if (args.size() < 2) {
-          DisplayMessage("Usage: /connect <ip:port>");
+          DisplayColoredMessage("Usage: /connect <ip:port>", TextColor::YELLOW);
           return false;
         }
         
@@ -37,15 +40,15 @@ ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
             port = std::stoi(address.substr(colon_pos + 1));
             address = address.substr(0, colon_pos);
           } catch (const std::exception& e) {
-            DisplayMessage("Invalid port number");
+            DisplayColoredMessage("Invalid port number", TextColor::RED);
             return false;
           }
         }
         
-        DisplayMessage("Connecting to " + address + ":" + std::to_string(port) + "...");
+        DisplayColoredMessage("Connecting to " + address + ":" + std::to_string(port) + "...", TextColor::YELLOW);
         
         if (!_network_manager->ConnectToPeer(address, port)) {
-          DisplayMessage("Failed to initiate connection");
+          DisplayColoredMessage("Failed to initiate connection", TextColor::RED);
           return false;
         }
         
@@ -56,7 +59,7 @@ ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
   RegisterCommand("chat", 
       [this](const std::vector<std::string>& args) {
         if (args.size() < 3) {
-          DisplayMessage("Usage: /chat <peer_id> <message>");
+          DisplayColoredMessage("Usage: /chat <peer_id> <message>", TextColor::YELLOW);
           return false;
         }
         
@@ -66,7 +69,7 @@ ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
         PeerId peer_id;
         try {
           if (peer_id_str.size() != 64) {
-            DisplayMessage("Invalid peer ID length");
+            DisplayColoredMessage("Invalid peer ID length", TextColor::RED);
             return false;
           }
           
@@ -75,7 +78,7 @@ ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
             peer_id[i] = std::stoi(byte_str, nullptr, 16);
           }
         } catch (const std::exception& e) {
-          DisplayMessage("Invalid peer ID format");
+          DisplayColoredMessage("Invalid peer ID format", TextColor::RED);
           return false;
         }
         
@@ -87,20 +90,13 @@ ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
           }
           message += args[i];
         }
+      // Use the chat manager to send the message
+      if (!_chat_manager->SendMessage(peer_id, message)) {
+        DisplayColoredMessage("Failed to send message", TextColor::RED);
+        return false;
+      }
         
-        // Create sender ID (for now, just a random ID)
-        PeerId sender_id;
-        std::random_device rd;
-        std::generate(sender_id.begin(), sender_id.end(), std::ref(rd));
-        
-        // Send the message
-        ChatMessage chat_msg(sender_id, message);
-        if (!_network_manager->SendMessage(peer_id, chat_msg)) {
-          DisplayMessage("Failed to send message");
-          return false;
-        }
-        
-        DisplayMessage("Message sent");
+        DisplayColoredMessage("Message sent", TextColor::GREEN);
         return true;
       }, 
       "Send a chat message to a peer");
@@ -160,7 +156,7 @@ ConsoleUI::ConsoleUI(std::shared_ptr<NetworkManager> network_manager,
             ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
           }
           ss << " | Name: " << peer.name 
-             << " | IP: " << peer.ip_address << ":" << peer.port;
+             << " | IP: " << peer.ip_address << ":" << std::dec << peer.port;
           
           DisplayMessage(ss.str());
         }
@@ -256,6 +252,36 @@ void ConsoleUI::DisplayMessage(const std::string& message) {
   _display_cv.notify_one();
 }
 
+void ConsoleUI::DisplayColoredMessage(const std::string& message, TextColor color) {
+  std::lock_guard<std::mutex> lock(_display_queue_mutex);
+  _display_queue.push(ColorText(message, color));
+  _display_cv.notify_one();
+}
+
+std::string ConsoleUI::ColorText(const std::string& text, TextColor color) const {
+  switch (color) {
+    case TextColor::RED:
+      return "\033[31m" + text + "\033[0m";
+    case TextColor::GREEN:
+      return "\033[32m" + text + "\033[0m";
+    case TextColor::YELLOW:
+      return "\033[33m" + text + "\033[0m";
+    case TextColor::BLUE:
+      return "\033[34m" + text + "\033[0m";
+    case TextColor::MAGENTA:
+      return "\033[35m" + text + "\033[0m";
+    case TextColor::CYAN:
+      return "\033[36m" + text + "\033[0m";
+    case TextColor::GRAY:
+      return "\033[90m" + text + "\033[0m";
+    case TextColor::BOLD_WHITE:
+      return "\033[1;37m" + text + "\033[0m";
+    case TextColor::RESET:
+    default:
+      return text;
+  }
+}
+
 void ConsoleUI::RegisterCommand(const std::string& command, 
                               CommandHandler handler,
                               const std::string& description) {
@@ -283,14 +309,11 @@ void ConsoleUI::InputThreadFunc() {
       // This is a broadcast message
       DisplayMessage("Broadcasting message: " + input);
       
-      // Create sender ID (for now, just a random ID)
-      PeerId sender_id;
-      std::random_device rd;
-      std::generate(sender_id.begin(), sender_id.end(), std::ref(rd));
+      // Use the chat manager to broadcast the message
+      _chat_manager->BroadcastMessage(input);
       
-      // Create and broadcast the message
-      ChatMessage message(sender_id, input);
-      _network_manager->BroadcastMessage(message);
+      // Also display the message locally as sent by us
+      DisplayColoredMessage("You: " + input, TextColor::GREEN);
     }
   }
 }
@@ -348,11 +371,11 @@ void ConsoleUI::ProcessCommand(const std::string& input) {
 }
 
 void ConsoleUI::DisplayHelp() {
-  DisplayMessage("Available commands:");
+  DisplayColoredMessage("Available commands:", TextColor::BOLD_WHITE);
   
   std::lock_guard<std::mutex> lock(_commands_mutex);
   for (const auto& [command, handler_desc] : _commands) {
-    DisplayMessage("  /" + command + " - " + handler_desc.second);
+    DisplayColoredMessage("  /" + command + " - " + handler_desc.second, TextColor::CYAN);
   }
 }
 

@@ -69,6 +69,22 @@ class FileTransferRequestMessage : public Message {
   uint64_t _file_size;
 };
 
+// Connection notification message
+class ConnectionMessage : public Message {
+ public:
+  ConnectionMessage(const PeerId& sender, ConnectionStatus status);
+  ConnectionMessage(const PeerId& sender);  // For deserialization
+  
+  ConnectionStatus GetStatus() const { return _status; }
+  void SetStatus(ConnectionStatus status) { _status = status; }
+  
+  ByteBuffer Serialize() const override;
+  bool Deserialize(const ByteBuffer& data) override;
+  
+ private:
+  ConnectionStatus _status;
+};
+
 // Message factory to create messages from raw data
 class MessageFactory {
  public:

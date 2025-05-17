@@ -1,0 +1,36 @@
+services:
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: linknet-node1
+    ports:
+      - "8080:8080"
+    networks:
+      linknet_network:
+        ipv4_address: 172.28.0.2
+    command: --port=8080
+    tty: true
+    stdin_open: true
+
+  node2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: linknet-node2
+    ports:
+      - "8081:8081"
+    networks:
+      linknet_network:
+        ipv4_address: 172.28.0.3
+    command: --port=8081
+    tty: true
+    stdin_open: true
+
+networks:
+  linknet_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
