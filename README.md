@@ -331,5 +331,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <sub>Built with ⚡ by [@screenager](https://x.com/the_screenager)</sub>
+  <sub>Built with ⚡ by <a href="https://x.com/the_screenager" target="_blank">@screenager</a></sub>
 </div>
