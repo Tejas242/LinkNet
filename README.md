@@ -1,17 +1,35 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/feathericons/feather/master/icons/link.svg" alt="LinkNet Logo" width="120" height="120">
+  <h1>
+    <svg width="28" height="28" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 8px; display: inline-block;">
+      <path fill="#2962FF" d="M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z" ></path>
+    </svg>
+    LinkNet
+  </h1>
   
-  <h1>LinkNet</h1>
-  
-  <p>A modern peer-to-peer chat and file-sharing system with secure encryption</p>
+  <p><strong>Next-generation P2P messaging and file transfer in C++ with military-grade encryption</strong></p>
+  <p><sub>Cut the middleman. Own your data. Never compromise on security.</sub></p>
 
-  [![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![CMake](https://img.shields.io/badge/CMake-3.15%2B-brightgreen)](https://cmake.org/)
-  [![Boost](https://img.shields.io/badge/Boost-1.70%2B-orange)](https://www.boost.org/)
-  [![OpenSSL](https://img.shields.io/badge/OpenSSL-1.1.1%2B-lightgrey)](https://www.openssl.org/)
-  [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://www.docker.com/)
-  
+<div>
+    <a href="https://isocpp.org/">
+        <img src="https://img.shields.io/badge/C%2B%2B-17-2962FF?style=for-the-badge&labelColor=212121&logo=c%2B%2B&logoColor=white" alt="C++17">
+    </a>
+    <a href="https://opensource.org/licenses/MIT">
+        <img src="https://img.shields.io/badge/License-MIT-212121?style=for-the-badge&logo=open-source-initiative&logoColor=white" alt="MIT License">
+    </a>
+    <a href="https://cmake.org/">
+        <img src="https://img.shields.io/badge/CMake-3.15%2B-064F8C?style=for-the-badge&labelColor=212121&logo=cmake&logoColor=white" alt="CMake">
+    </a>
+    <a href="https://www.boost.org/">
+        <img src="https://img.shields.io/badge/Boost-1.70%2B-B87300?style=for-the-badge&labelColor=212121&logo=boost&logoColor=white" alt="Boost">
+    </a>
+    <a href="https://www.openssl.org/">
+        <img src="https://img.shields.io/badge/OpenSSL-1.1.1%2B-721412?style=for-the-badge&labelColor=212121&logo=openssl&logoColor=white" alt="OpenSSL">
+    </a>
+    <a href="https://www.docker.com/">
+        <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&labelColor=212121&logo=docker&logoColor=white" alt="Docker">
+    </a>
+</div>
+  <br>
 </div>
 
 ## Overview
@@ -184,7 +202,7 @@ LinkNet/
 ```
 </details>
 
-## 🧩 Architecture
+## Architecture
 
 LinkNet follows a modular, layered architecture that separates concerns and promotes maintainability:
 
@@ -225,7 +243,7 @@ LinkNet follows a modular, layered architecture that separates concerns and prom
 4. **PeerDiscovery**: Implements automatic peer discovery on local networks
 5. **Message**: Base class for all message types with serialization/deserialization
 
-## 💡 Implementation Details
+## Implementation Details
 
 <details>
 <summary><strong>Network Communication</strong></summary>
@@ -281,7 +299,7 @@ LinkNet employs several cryptographic mechanisms:
 Keys are rotated periodically to maintain forward secrecy.
 </details>
 
-## 🧪 Testing
+## Testing
 
 LinkNet includes comprehensive testing:
 
@@ -296,7 +314,7 @@ cd build && ctest -R crypto_tests
 cd build && ctest -V
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome and appreciated! Here's how you can contribute:
 
@@ -308,12 +326,12 @@ Contributions are welcome and appreciated! Here's how you can contribute:
 
 Please make sure your code follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by the LinkNet team</sub>
+  <sub>Built with ⚡ by [@screenager](https://x.com/the_screenager)</sub>
 </div>
