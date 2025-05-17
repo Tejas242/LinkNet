@@ -1,11 +1,5 @@
 <div align="center">
-  <h1>
-    <svg width="28" height="28" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 8px; display: inline-block;">
-      <path fill="#2962FF" d="M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1Z" ></path>
-    </svg>
-    LinkNet
-  </h1>
-  
+<img src="public/banner.png" alt="LinkNet Banner" width="100%" style="max-width:900px; margin-bottom: 16px;" />
   <p><strong>Next-generation P2P messaging and file transfer in C++ with military-grade encryption</strong></p>
   <p><sub>Cut the middleman. Own your data. Never compromise on security.</sub></p>
 
