@@ -34,7 +34,7 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      run: ctest -C ${{matrix.build_type}} --output-on-failure
+      run: ctest -V -C ${{matrix.build_type}} --output-on-failure
 
   code-analysis:
     name: Code Analysis

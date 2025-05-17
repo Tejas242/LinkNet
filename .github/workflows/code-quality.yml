@@ -1,0 +1,90 @@
+name: Code Quality & Security
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sundays at midnight
+  workflow_dispatch:
+
+jobs:
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: cpp
+        
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libboost-all-dev libsodium-dev libssl-dev protobuf-compiler libprotobuf-dev libgtest-dev pkg-config
+    
+    - name: Build
+      run: |
+        cmake -B ${{github.workspace}}/build
+        cmake --build ${{github.workspace}}/build --parallel $(nproc)
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  cpp-linting:
+    name: C++ Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+      
+    - name: Run clang-format
+      run: |
+        find ${{github.workspace}}/src ${{github.workspace}}/include -name '*.cpp' -o -name '*.h' | xargs clang-format -Werror --dry-run
+
+  cpp-check:
+    name: Cppcheck Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+      
+    - name: Run cppcheck
+      run: |
+        cppcheck --enable=all --std=c++17 --language=c++ --error-exitcode=1 \
+          --suppress=missingInclude \
+          -I ${{github.workspace}}/include \
+          ${{github.workspace}}/src ${{github.workspace}}/include
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: high

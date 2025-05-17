@@ -19,6 +19,16 @@
     <a href="https://www.openssl.org/">
         <img src="https://img.shields.io/badge/OpenSSL-1.1.1%2B-721412?style=for-the-badge&labelColor=212121&logo=openssl&logoColor=white" alt="OpenSSL">
     </a>
+    <br>
+    <a href="https://github.com/tejas242/LinkNet/actions/workflows/ci.yml">
+        <img src="https://github.com/yourusername/LinkNet/actions/workflows/ci.yml/badge.svg" alt="CI">
+    </a>
+    <a href="https://github.com/tejas242/LinkNet/actions/workflows/code-quality.yml">
+        <img src="https://github.com/tejas242/LinkNet/actions/workflows/code-quality.yml/badge.svg" alt="Code Quality & Security">
+    </a>
+    <a href="https://github.com/tejas242/LinkNet/actions/workflows/release.yml">
+        <img src="https://github.com/yourusername/LinkNet/actions/workflows/release.yml/badge.svg" alt="Release">
+    </a>
     <a href="https://www.docker.com/">
         <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&labelColor=212121&logo=docker&logoColor=white" alt="Docker">
     </a>
