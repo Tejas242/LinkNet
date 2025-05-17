@@ -133,7 +133,7 @@ docker attach linknet-node2  # In terminal 2
 docker compose down
 ```
 
-## 📘 Usage Guide
+## Usage Guide
 
 ### Starting a LinkNet Node
 
