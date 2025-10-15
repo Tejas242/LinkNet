@@ -30,6 +30,10 @@
   <br>
 </div>
 
+> [!WARNING]
+> NOT WORKING!!!
+> Will fix the problems later, or just open a PR if you can. and also issues as you encounter.
+
 ## Overview
 
 **LinkNet** is a high-performance C++ application that enables direct peer-to-peer communication between users for both text messaging and file sharing. Built with security in mind, all communications are end-to-end encrypted to ensure complete privacy and data integrity.
